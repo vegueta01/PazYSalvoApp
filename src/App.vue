@@ -38,7 +38,7 @@
       <v-toolbar-title>Paz y salvo</v-toolbar-title>
     </v-toolbar>
     <v-content>
-      <v-container fluid fill-height>
+      <v-container fluid >
         <!-- <v-layout
           justify-center
           align-center

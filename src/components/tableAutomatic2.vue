@@ -196,15 +196,29 @@
     </mdb-modal-footer>
   </mdb-modal> -->
  
-      <mdb-modal  removeBackdrop side position="bottom-right" size="fluid" v-if="showModalMessaje" @close="showModalMessaje = false">
-        <mdb-modal-header>
-          <mdb-modal-title>Mensaje</mdb-modal-title>
-        </mdb-modal-header>
-        <mdb-modal-body>{{mensssajeModal}}</mdb-modal-body>
-        <mdb-modal-footer>
-          <v-btn color="secondary" @click.native="showModalMessaje = false">ok</v-btn>         
-        </mdb-modal-footer>
-      </mdb-modal>
+      <v-dialog  removeBackdrop side position="bottom-right" size="fluid" v-model="showModalMessaje" @close="showModalMessaje = false">
+        <v-card v-if="showModalMessaje">        
+          <!-- <mdb-modal-header>
+            <mdb-modal-title>Mensaje</mdb-modal-title>
+          </mdb-modal-header> -->
+           <v-card-title class="headline grey lighten-2" primary-title>     
+            Mensaje
+          </v-card-title>
+          <!-- <mdb-modal-body>{{mensssajeModal}}</mdb-modal-body>
+          <mdb-modal-footer>
+            <v-btn color="secondary" @click.native="showModalMessaje = false">ok</v-btn>         
+          </mdb-modal-footer> -->
+          <v-card-text class="grey-text"  >
+          <v-container>
+              {{mensssajeModal}}
+          </v-container>
+      </v-card-text>
+          <v-card-actions center>
+              <v-spacer></v-spacer>
+                <v-btn @click.native="showModalMessaje = false" color="primary">ok</v-btn>               
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     
   
 </v-container>
@@ -272,9 +286,9 @@ export default {
     updateChangeInput(changeInput){
        
       this.animateIndexAux++;
-        // console.log({changeInput});
-        // console.log('this.animateIndexAux: '+this.animateIndexAux);
-        // console.log('this.countComponents '+ this.countComponents);
+        console.log({changeInput});
+        console.log('this.animateIndexAux: '+this.animateIndexAux);
+        console.log('this.countComponents '+ this.countComponents);
         
     //   if(this.animateIndexAux > this.countComponents){
     //     this.animate ='animated bounce infinite';           

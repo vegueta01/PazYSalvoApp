@@ -1,5 +1,8 @@
 <template> 
-    <tableAutomatic2 v-bind="{service,idName,constraint,tableTitle,columns,noColumns}" />
+    <div>
+        <tableAutomatic2 v-bind="{service,idName,constraint,tableTitle,columns,noColumns}" />
+    </div>   
+    
 </template>
 
 <script>
