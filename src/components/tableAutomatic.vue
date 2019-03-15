@@ -1,178 +1,335 @@
 <template>
 
-<mdb-container class="mt-5">
- 
-<div class="card card-cascade narrower my-5"> 
- <div class="blue-gradient z-depth-2 py-4 mx-4 mb-3 rounded">
-    <h4 class="text-center white-text"><strong>{{tableTitle}}
-                <span v-if="!completeProcess" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                <span class="sr-only">Loading...</span>
-            </strong></h4>
- </div>
-    <div class="container mt-3">
-       <b-row>
-          <b-col>
-            <mdb-btn color="primary" style="width: 15rem;" @click="showAdd()">Agregar registro
-               
-            </mdb-btn>
-            <!-- <span class="spinner-border text-primary" style="width: 2rem; height: 2rem;" role="status">
-              <span class="sr-only">Loading...</span>
-            </span> -->
-          </b-col>
-        <b-col md="6" class="my-1">    
-              <mdb-input class="mt-0 mb-3" v-model="filter"  placeholder="Buscar" ariaDescribedBy="button-addon2">
-                  <mdb-btn  :disabled="!filter" @click="filter = ''" color="primary" size="md" group slot="append" id="button-addon2">Borrar</mdb-btn>
-              </mdb-input>            
-        </b-col>
-       </b-row>
-    </div>
-      <div class="px-4">
+<div >
+
+      <div >
+         <v-card >
+
+            <v-card-title class="mb-4 mt-2"  v-if="configComponent.tableTitle !== ''">
+             <v-toolbar center dark  class="elevation-12 rounded" color="primary darken-1">
+                      <v-toolbar-title>{{configComponent.tableTitle}}</v-toolbar-title>
+                    </v-toolbar>
+            </v-card-title>
+     
+              <v-card-title  v-if="configComponent.add !== false">
+                <v-btn color="primary" style="width: 15rem;" @click="showAdd()">Agregar registro</v-btn>
+              <v-spacer></v-spacer>
+              <v-text-field
+                v-model="search"
+                append-icon="search"
+                label="Search"
+                single-line
+                hide-details
+              ></v-text-field>
+              </v-card-title>              
          
-          <div class="table-wrapper">
-               
-               <b-table  
-               responsive               
-                hover 
-             
-                :items="items"
-                :fields="fields"
-                :current-page="currentPage"
-                :per-page="perPage"
-                :filter="filter"
-                @filtered="onFiltered"                  
-                @row-clicked="dobleClick"   
-               :tbody-transition-props="transProps"
-              >
+            <v-data-table
+              v-model="selected"
+              :headers="fields"
+              :items="indexedItems"
+              :loading="!completeProcess"
+              :search="search"
+              :pagination.sync="pagination"
+              :select-all="withChekbox" 
+              :expand="!configComponent.expandOne" 
+              item-key="_id"  
+              :hide-actions="!configComponent.pagination"
+            >
 
-              <template slot="editar" slot-scope="row">            
-                <mdb-btn tag="a" floating size="sm" @click="showUpdate(row.item, row.index)"><mdb-icon icon="pencil-alt"/></mdb-btn>
-              </template>
-              <template slot="row-details" slot-scope="row">
-                <b-card >
-                  <ul >
-                    <li v-for="(value, key) in row.item" :key="key">{{ key }}: {{ value}}</li>
-                  </ul>
-                </b-card>
-              </template>
-              </b-table>
-                <b-row>
-                  <b-col md="6" class="my-1">
-                    <b-pagination :total-rows="totalRows" :per-page="perPage" v-model="currentPage" class="my-0" />
-                  </b-col>
-                </b-row>
-          </div>
+            <template slot="headers" slot-scope="props" >
+              <tr>
+                <th v-if="withChekbox">
+                  <!-- poner que cuando se recojan todos salga el ícono diferente (listo)
+                        poner un botón de aceptar en todas las tablas con checbox o actualizar automáticamente cuando se le de en el checkbox (listo)
+                        poner en todas las tablas el indice (list)
+                        crear otra tabla para solo la opción de chechbox sin editar (listo)
+                        buscar la llave referencia del id, este dato ponerlo en las configuraciones (listo)
+                        poner la fecha adecuadamente
+                        en la base de datos, preguntar cual archivo ha sido asignado y si ha sido devulto ¿, marcarlo como devuelto por fecha
+                        cuando se valla a guardar o actualizar un dato, puedo enviar campos por defecto desde las configuraciones
+                        poner una flechita hacia abajo cuando es un rejistro desplegable
+                        poner un botón en cada registro enviando una función
+                        poner un botón general en el footer de la tabla enviando una función
+                        forzar a que la tabla desplegable no sé expanda, en vez de eso usar un scroll
+                         -->
+                  <v-checkbox
+                    :input-value="props.all"
+                    :indeterminate="props.indeterminate"
+                    primary
+                    hide-details
+                    @click.stop="toggleAll"
+                  ></v-checkbox>
+                </th>                
+                <th
+                  v-for="header in props.headers"
+                  :key="header.text"
+                  :class="['column sortable', pagination.descending ? 'desc' : 'asc', header.value === pagination.sortBy ? 'active' : '']"
+                  @click="changeSort(header.value)"
+                >
+                  <v-icon small>arrow_upward</v-icon>
+                  {{ header.text }}
+                </th>
+              </tr>
+            </template>
 
-      </div>
+              <template slot="expand">
+                
+                <v-card hover color="primary darken-1">
+                  <v-card-text >
+                    <div v-if="configComponent.expandText">
+                      {{configComponent.expandText}}
+                    </div>
+
+                    <!-- <component :is="configComponent.expandComponent" v-bind="{configComponent:configComponent.configExpandComponent}" v-if="configComponent.expandComponent"></component> -->
+                    <component :is="configComponent.expandComponent" v-bind="{configComponent:setConfigComponent}" v-if="configComponent.expandComponent"></component>
+                  </v-card-text>         
+                </v-card>
+              </template>
+              <template slot="items" slot-scope="props">
+                
+                 <tr :active="props.selected" @click="dobleClick($event,props.item,props.index,props)">
+
+                    <td v-if="withChekbox">
+                    <v-checkbox
+                      :input-value="props.selected"
+                      primary
+                      hide-details
+                      @click.stop="clickCheckBox(props)"
+                    ></v-checkbox>
+                  </td>
+
+                  <td class="justify-center layout px-0" v-if="configComponent.edit !== false">
+                  <v-icon
+                      small
+                      class="mr-2"
+                      @click.stop="showUpdate(props.item,props.index)"
+                  >
+                      edit
+                  </v-icon>
+                  <v-icon
+                      small
+                      @click.stop="deleted()"
+                  >
+                      delete
+                  </v-icon>
+                  </td>
+                  <td class="text-xs-left"  v-for="(item,key) in props.item"  :key="key">                    
+                    {{item}}
+                  </td>      
+              </tr>
+              </template>
+               <template slot="pageText" slot-scope="props" v-if="configComponent.pagination">
+                  registro {{ props.pageStart }} a {{ props.pageStop }} de {{ props.itemsLength }}
+                </template>
+              <v-alert slot="no-results" :value="true" color="error" icon="warning">
+                Su busqueda "{{ search }}" no arroja resultados.
+              </v-alert>
+            </v-data-table>
+          </v-card>
 
   </div>
 
- <mdb-modal v-if="adding" @close="adding = false">
-    <mdb-modal-header class="text-center">
-      <mdb-modal-title tag="h4" bold class="w-100">Inssertar</mdb-modal-title>
-    </mdb-modal-header>
-    <mdb-modal-body class="mx-3 grey-text"  >
-   
-       <component v-for="(item, key) in dataAdd" :key="key " 
-        v-bind="{
-          label:fieldsJson[key].label,
-          value:dataAdd[key],
-          type:fieldsJson[key].type,
-          options: externalItems[fieldsJson[key].label],
-          constraints: constraint.filter(con => con.localReference === key)[0]
-          }"       
-        v-on:input="dataAddOnchange($event,key)"
-        v-bind:is="selectInputElement(fieldsJson[key].type)">        
-        </component>
-    </mdb-modal-body>
-    <mdb-modal-footer center>
-      <mdb-btn @click="save(dataAdd)" color="primary">Guardar</mdb-btn>
-    </mdb-modal-footer>
-  </mdb-modal>
+ <v-dialog v-model="adding" @close="adding = false"  max-width="550px">
+     <v-card v-if="adding">
+    <v-card-title class="headline grey lighten-2" primary-title>
+      <!-- <mdb-modal-title tag="h4" bold class="w-100">Inssertar</mdb-modal-title> -->
+      Insertar
+    </v-card-title>
+    <v-card-text class="grey-text"  >
+        <v-container>
+        <component v-for="(item, key) in dataAdd" :key="key " 
+          class="mt-3"
+            v-bind="{
+            label:fieldsJson[key].text,
+            value:dataAdd[key],
+            referenceId:dataAdd[key],
+            type:fieldsJson[key].type,
+            options: externalItems[fieldsJson[key].text],
+            constraints: configComponent.constraint.filter(con => con.localReference === key)[0]
+            }"
+            v-on:input="dataAddOnchange($event,key)"
+            v-bind:is="selectInputElement(fieldsJson[key].type)">        
+            </component>
+        </v-container>
+    </v-card-text>
+        <v-card-actions center>
+            <v-spacer></v-spacer>
+            <v-btn @click="save(dataAdd)" color="primary">Guardar</v-btn>
+        </v-card-actions>
+    </v-card>
+  </v-dialog>
 
 
-  <mdb-modal v-if="editing" @close="editing = false">
-    <mdb-modal-header class="text-center">
-      <mdb-modal-title tag="h4" bold class="w-100">Actualizar</mdb-modal-title>
-    </mdb-modal-header>
-    <mdb-modal-body class="mx-3 grey-text">
+<v-dialog v-model="editing"  max-width="550px">
+     <v-card v-if="editing">
+    <v-card-title class="headline grey lighten-2" primary-title>
+      <!-- <mdb-modal-title tag="h4" bold class="w-100">Inssertar</mdb-modal-title> -->
+      Actualizar
+    </v-card-title>
+    <v-card-text class="grey-text"  >
+        <v-container>
+            <component v-for="(item, key) in dataUpdate" :key="key"  @input="updateChangeInput"
+            v-bind="{
+              label:fieldsJson[key].text,
+              value:dataUpdate[key],
+              type:fieldsJson[key].type,
+              options: externalItems[fieldsJson[key].text],
+              referenceId:selectReferenceId(key),//buscar la posición de el registro y envialo
+              constraints: configComponent.constraint.filter(con => con.localReference === key)[0]
+              }"       
+            v-on:input="dataSaveOnchange($event,key)"
+            v-bind:is="selectInputElement(fieldsJson[key].type)">        
+          </component>
+        </v-container>
+    </v-card-text>
+        <v-card-actions center>
+            <v-spacer></v-spacer>
+              <v-btn @click="updated(dataUpdate)" color="primary" :class="animate">Actualizar</v-btn>
+              <v-btn @click="deleted()" color="warning">Eliminar</v-btn>
+        </v-card-actions>
+    </v-card>
+  </v-dialog>
 
-    <component v-for="(item, key) in dataUpdate" :key="key"  @input="updateChangeInput"
-        v-bind="{
-          label:fieldsJson[key].label,
-          value:dataUpdate[key],
-          type:fieldsJson[key].type,
-          options: externalItems[fieldsJson[key].label],
-          referenceId:selectReferenceId(key),//buscar la posición de el registro y envialo
-          constraints: constraint.filter(con => con.localReference === key)[0]
-          }"       
-        v-on:input="dataSaveOnchange($event,key)"
-        v-bind:is="selectInputElement(fieldsJson[key].type)">        
-      </component>
-    </mdb-modal-body>
-    <mdb-modal-footer center>
-      <mdb-btn @click="updated(dataUpdate)" color="primary" :class="animate">Actualizar</mdb-btn>
-      <mdb-btn @click="deleted()" color="danger">Eliminar</mdb-btn>
-    </mdb-modal-footer>
-  </mdb-modal>
+
  
-      <mdb-modal  removeBackdrop side position="bottom-right" size="fluid" v-if="showModalMessaje" @close="showModalMessaje = false">
-        <mdb-modal-header>
-          <mdb-modal-title>Mensaje</mdb-modal-title>
-        </mdb-modal-header>
-        <mdb-modal-body>{{mensssajeModal}}</mdb-modal-body>
-        <mdb-modal-footer>
-          <mdb-btn color="secondary" @click.native="showModalMessaje = false">ok</mdb-btn>         
-        </mdb-modal-footer>
-      </mdb-modal>
-    
-  
-</mdb-container>
+      <v-dialog  removeBackdrop side position="bottom-right" size="fluid" v-model="showModalMessaje" @close="showModalMessaje = false">
+        <v-card v-if="showModalMessaje">        
+
+           <v-card-title class="headline grey lighten-2" primary-title>     
+            Mensaje
+          </v-card-title>
+
+          <v-card-text class="grey-text"  >
+          <v-container>
+              {{mensssajeModal}}
+          </v-container>
+      </v-card-text>
+          <v-card-actions center>
+              <v-spacer></v-spacer>
+                <v-btn @click.native="showModalMessaje = false" color="primary">ok</v-btn>               
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <v-dialog  removeBackdrop side position="bottom-right" size="fluid" v-model="showModalMessajeDelete" @close="showModalMessajeDelete = false">
+        <v-card v-if="showModalMessajeDelete">        
+          <!-- <mdb-modal-header>
+            <mdb-modal-title>Mensaje</mdb-modal-title>
+          </mdb-modal-header> -->
+           <v-card-title class="headline warning lighten-2" primary-title>     
+            ¡Atención!
+          </v-card-title>
+          <v-card-text class="grey-text"  >
+          <v-container>
+              {{mensssajeModal}}
+          </v-container>
+      </v-card-text>
+          <v-card-actions center>
+              <v-spacer></v-spacer>
+                <v-btn @click.native="deleteConfirm()" color="error">Borrar</v-btn>   
+                <v-btn @click.native="showModalMessajeDelete = false" color="primary">cancelar</v-btn>              
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+</div>
 
 </template>
 <script>
-  import {
-        mdbBtn,mdbRow,mdbContainer,mdbIcon,mdbInput,
-           mdbModal, mdbModalHeader, mdbModalBody, mdbModalFooter,mdbModalTitle,
-           mdbCard,mdbCardBody,mdbCardTitle,mdbCardText,mdbCardUp,mdbView,ViewWrapper} from 'mdbvue';
+//   import {
+//         mdbBtn,mdbRow,mdbContainer,mdbIcon,mdbInput,
+//            mdbModal, mdbModalHeader, mdbModalBody, mdbModalFooter,mdbModalTitle,
+//            mdbCard,mdbCardBody,mdbCardTitle,mdbCardText,mdbCardUp,mdbView,ViewWrapper} from 'mdbvue';
 
   import config from '@/config';
-  import InputTextMdb from '@/components/InputTextMdb.vue'
+  import InputText from '@/components/InputText.vue'
   import inputSelectEditable from '@/components/inputSelectEditable.vue'
-  import datePicker from '@/components/datePicker.vue'
+//   import datePicker from '@/components/datePicker.vue'
 
 
 export default {
      components: {   
         
-        datePicker,
-        InputTextMdb,
+        // datePicker,
+        InputText,
         inputSelectEditable,
-        mdbBtn,
-        mdbInput,
-        mdbModalTitle,
+        // mdbBtn,
+        // mdbInput,
+        // mdbModalTitle,
 
-        mdbRow,
-        mdbIcon,
-        mdbContainer,
-        mdbModal,
-        mdbModalHeader,
-        mdbModalBody,
-        mdbModalFooter,
-        mdbCard,mdbCardBody,mdbCardTitle,mdbCardText,mdbCardUp,mdbView,ViewWrapper
+        // mdbRow,
+        // mdbIcon,
+        // mdbContainer,
+        // mdbModal,
+        // mdbModalHeader,
+        // mdbModalBody,
+        // mdbModalFooter,
+        // mdbCard,mdbCardBody,mdbCardTitle,mdbCardText,mdbCardUp,mdbView,ViewWrapper
  
     }, 
     computed :{
-    sortOptions () {
-        // Create an options list from our fields
-        return this.fields
-            .filter(f => f.sortable)
-            .map(f => { return { text: f.label, value: f.key } })
-        }
+      
+    //  activeUsers: function () {
+    //     return this.items.filter(function (user) {
+    //     return user.isActive
+    //     })
+    // },
+     indexedItems () {
+      return this.items.map((item, index) => ({
+        _id: index,
+        ...item
+      }))
+    },
+    withChekbox(){
+      console.log({chekboxLocalReference:this.configComponent.chekboxLocalReference});      
+      if(this.configComponent.chekboxLocalReference === undefined){
+        return false;
+      }else{
+        return true;
+      }
+    },
+    // sortOptions () {
+    //     // Create an options list from our fields
+    //     return this.fields
+    //         .filter(f => f.sortable)
+    //         .map(f => { return { text: f.label, value: f.key } })
+    // },
+    setConfigComponent(){
+
+      console.log('config component');            
+      let newConfig =this.configComponent.configExpandComponent;
+      
+      
+      if(newConfig.service){
+        if(this.itemsUnchanged.length > 0){
+          // console.log({idLocalReferenceComponent:this.configComponent.idLocalReferenceComponent});
+          if(this.configComponent.configExpandComponent.idReferenceFather !== undefined){
+            if(this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName] !== undefined){
+              newConfig.idFather = this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName];
+              // newConfig.service = newConfig.service+'/?'+this.configComponent.idReferenceFather+'='+this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName];
+              console.log({configExpandComponentService:newConfig.service}); 
+              console.log({configExpandComponentidFather:newConfig.idFather}); 
+            }else{
+              console.log({itemsUnchanged:this.itemsUnchanged});
+              console.log({idLocalReferenceComponent:this.configComponent.idLocalReferenceComponent});
+            }
+          }
+        }     
+      }
+      console.log({configComponent:this.configComponent});
+      return newConfig;
+    }
+    },
+    beforeMount() {
+      // this.getData().then(); //pasar esta función a computed
     },
     mounted (){
+        
+        // console.log({service:this.configComponent.service,idName:this.configComponent.idName,constraint:this.configComponent.constraint,tableTitle:this.configComponent.tableTitle,columns:this.configComponent.columns,noColumns:this.configComponent.noColumns});
+        
         this.getData().then(); //pasar esta función a computed
     },
     watch: {
+      
       completeProcess : function (value){
         // console.log({completeProcess:value});
         if(this.showModalMessaje){
@@ -182,13 +339,34 @@ export default {
       }
     },
     methods: {
-    
+    clickCheckBox:async function(props){
+       
+        
+        props.selected= !props.selected 
+         console.log({selected:this.selected})
+        // this.indexTableUbdateSelected = ((this.pagination.page-1)*this.pagination.rowsPerPage)+props.index;
+       this.indexTableUbdateSelected = props.item._id
+        let data ={};
+        if(props.selected){
+           data[this.configComponent.chekboxLocalReference] = 0;
+        }else{
+            data[this.configComponent.chekboxLocalReference] = 1;
+        }
+       
+        console.log({data});
+        
+        console.log({indexTableUbdateSelected:this.indexTableUbdateSelected});
+        await this.updated(data).catch(error=>{
+          console.log({error});
+          
+        });
+      },
     updateChangeInput(changeInput){
        
       this.animateIndexAux++;
-        // console.log({changeInput});
-        // console.log('this.animateIndexAux: '+this.animateIndexAux);
-        // console.log('this.countComponents '+ this.countComponents);
+        console.log({changeInput});
+        console.log('this.animateIndexAux: '+this.animateIndexAux);
+        console.log('this.countComponents '+ this.countComponents);
         
     //   if(this.animateIndexAux > this.countComponents){
     //     this.animate ='animated bounce infinite';           
@@ -197,27 +375,36 @@ export default {
             this.animate ='animated bounce infinite';           
         }
     },
-    selectTypeField(type){
-      if(type === 'VARCHAR2'){      
-        return 'text'
-      }else if(type  === 'NUMBER'){
-        return 'number'
-      }else if(type  === 'DATE'){
-        return 'datetime-local'
+    // selectTypeField(type){
+    //   if(type === 'VARCHAR2'){      
+    //     return 'text'
+    //   }else if(type  === 'NUMBER'){
+    //     return 'number'
+    //   }else if(type  === 'DATE'){
+    //     return 'datetime-local'
       
-      }
-    },
-    dobleClick(item,index,event){
+    //   }
+    // },
+    dobleClick(event,item,index,props){  
+      //  console.log({configComponent:this.configComponent});
+        if(this.configComponent.expand){
+          props.expanded = !props.expanded          
+        }
+       
         this.clickClicks++ 
           if(this.clickClicks === 1) {
-            this.indexTableUbdateSelected = ((this.currentPage-1)*this.perPage)+index;
+            // this.indexTableUbdateSelected = ((this.pagination.page/*this.currentPage*/-1)*this.pagination.rowsPerPage /*this.perPage*/)+index;
+           this.indexTableUbdateSelected = props.item._id;
+           console.log( {indexTableUbdateSelected:this.indexTableUbdateSelected});           
             var self = this
             this.clickTimer = setTimeout(function() {
               self.clickResult.push(event.type);
               self.clickClicks = 0
             }, this.clickDelay);
           } else{
-              if(this.indexTableUbdateSelected === ((this.currentPage-1)*this.perPage)+index){
+             if(this.configComponent.edit !== false){
+              if(this.indexTableUbdateSelected === props.item._id){
+                   
                    clearTimeout(this.clickTimer);  
                     this.clickResult.push('dblclick');
                     this.clickClicks = 0;
@@ -230,68 +417,10 @@ export default {
                }
             
           }         
-         
+         }
       
         
         
-    },
-    selectTypeUpdate(key,value){
-      console.log({key});
-      
-      console.log('fieldsJson '+this.fieldsJson[key]);
-      
-      // buscar que tipo de dat es y si el dato es necesario modificarlo           
-      const result = this.fields.filter(field => field.key === key);
-      console.log({result});
-      
-      if(result[0]!==undefined){        
-        if(result[0].type === 'VARCHAR2'){
-    
-          if(value === null){
-            console.log({key}); 
-              this.data[key] = "";
-            }
-          return 'text'
-        }else if(result[0].type  === 'NUMBER'){
-          if(value === null){
-            console.log({key}); 
-              this.data[key] = "";
-            }
-          return 'number'
-        }else if(result[0].type  === 'DATE'){
-          return 'datetime-local'
-        }else if(result[0].type  === 'SELECT'){      
-          return 'text'         
-        }
-      }
-      
-    },
-    selectTypeAdd(key,type){
-      
-      if(type!==undefined){ 
-        if(type === 'VARCHAR2'){    
-          if(this.dataAdd[key] === null){
-              this.dataAdd[key] = "";
-            }
-          return 'text'
-        }else if(type  === 'NUMBER'){
-          if(this.dataAdd[key] === null){
-              this.dataAdd[key] = "";
-            }
-          return 'number'
-        }else if(type  === 'DATE'){
-          this.dataAdd[key] = new Date().toISOString().substring(0,19);          
-          return 'datetime-local'         
-        }else if(type  === 'CHAR'){
-          if(this.dataAdd[key] === null){
-              this.dataAdd[key] = "";
-            }
-          return 'text';
-        }
-      }else{
-        return 'text'
-      }
-      
     },
     save(data){  
       console.log({data});       
@@ -299,7 +428,13 @@ export default {
       // si la tabla no tiene llaves foraneas entoces no se añaden más campos
       // this.dataAddAdicional se llena automática mente con el método dataAddOnchange()
       // las configuraciones de las llaves foraneas se ponen en la variable constraint
+
+        
+      
       let insetData = Object.assign({}, insetData , data ); 
+      if (this.configComponent.idFather !== undefined) {        
+          insetData[this.configComponent.idReferenceFather] = this.configComponent.idFather;
+        }
       this.adding=false; 
        for (const key in this.dataAddAdicional) {
           insetData[key] = this.dataAddAdicional[key];
@@ -313,16 +448,16 @@ export default {
       //  this.adding=true; 
       
        console.log({insetData}); 
-      this.$http.post(this.config.urlBase+'/'+this.service,insetData).then(resp=>{
+      this.$http.post(this.config.urlBase+'/'+this.configComponent.service,insetData).then(resp=>{
         console.log({resp});
         this.getData();
       }).catch(error=>{
         this.showModalMessaje =true;
-        this.mensssajeModal = error;
+        this.mensssajeModal = error.response.data.error;
         this.adding=true; 
       });
     },
-    updated(data) {
+    updated: async function(data) {
        console.log({data});
        this.editing=false;      
         for (const key in data){
@@ -331,6 +466,10 @@ export default {
           }
         }     
       let insetData = Object.assign({}, insetData , data ); 
+      // si necesita actualizar con un id padre entonces descomentar esto
+      //  if (this.configComponent.idFather !== undefined) {        
+      //     insetData[this.configComponent.idReferenceFather] = this.configComponent.idFather;
+      //   }
       this.adding=false; 
        for (const key in this.dataAddAdicional) {
           insetData[key] = this.dataAddAdicional[key];
@@ -340,52 +479,99 @@ export default {
             insetData[key] = null;
           }
       }
-
-      insetData[this.idName] = this.items[this.indexTableUbdateSelected][this.idName];
+      console.log({indexTableUbdateSelected:this.indexTableUbdateSelected});
+      console.log({itemsUnchanged:this.itemsUnchanged});      
+      insetData[this.configComponent.idName] = this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName];
       console.log({insetData});     
-      this.$http.put(this.config.urlBase+'/'+this.service,insetData)
-      .then(resp=>{
-        console.log({resp});
-        this.getData();
-      }).catch(error=>{
+      let resp = await this.$http.put(this.config.urlBase+'/'+this.configComponent.service,insetData).catch(error=>{
         this.showModalMessaje =true;
-        this.mensssajeModal = error;
+        this.mensssajeModal = error.response.data.error;
         this.editing=true; 
+        throw error;
       });
+      console.log({resp});
+      this.getData();
+      return resp;
+      // .then(resp=>{
+      //   console.log({resp});
+      //   this.getData();
+      // }).catch(error=>{
+      //   this.showModalMessaje =true;
+      //   this.mensssajeModal = error;
+      //   this.editing=true; 
+      // });
     },
     deleted(){
-      let id = this.items[this.indexTableUbdateSelected][this.idName]
+      let text='';
+      let iAux = true;
+      for (let i = 0; i < this.fields.length; i++) {
+        if(this.fields[i].value.toLowerCase() !== 'editar'){
+            if(this.fields[i].value.toLowerCase() !== '_id'){
+              if(iAux){
+                text+=this.fields[i].text +' = '+this.items[this.indexTableUbdateSelected][this.fields[i].value]
+                iAux = false;
+              }else{          
+                  text+=' ,'+this.fields[i].text +' = '+this.items[this.indexTableUbdateSelected][this.fields[i].value]
+              }
+            }
+          }
+      }
+      this.mensssajeModal ='Desea eliminar el registro: '+text;
+      this.showModalMessajeDelete = true;
+
+    let id = this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName]
     console.log({id});     
-          this.$http.delete(this.config.urlBase+'/'+this.service+'/'+id).then(resp=>{
+          // this.$http.delete(this.config.urlBase+'/'+this.configComponent.service+'/'+id).then(resp=>{
+          //   console.log({resp});
+          //   this.getData();
+          //   this.editing=false;
+          // },error=>{     
+          //   this.showModalMessaje =true;
+          //   this.mensssajeModal = error;
+          //   this.editing=true;
+          // });
+    },
+    deleteConfirm(){
+      let id = this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName]
+      console.log({id});     
+      
+          this.$http.delete(this.config.urlBase+'/'+this.configComponent.service+'/'+id).then(resp=>{
             console.log({resp});
             this.getData();
             this.editing=false;
+            this.showModalMessajeDelete = false;
           },error=>{     
             this.showModalMessaje =true;
-            this.mensssajeModal = error;
-            this.editing=true;
+            this.mensssajeModal = error.response.data.error;   
+            this.showModalMessajeDelete = false;        
           });
     },
-    getPromise(service){
-      return new Promise((resolve,reject)=>{
-        resolve(this.$http.get(this.config.urlBase+'/'+service));
-      });
-    },
-    getPromisesConstraint(constraint){
-      let promises = [];
-      for (let k = 0; k < constraint.length; k++){
-        this.getPromise(constraint[k].service);
+    // getPromise(service){
+    //   return new Promise((resolve,reject)=>{
+    //     resolve(this.$http.get(this.config.urlBase+'/'+service));
+    //   });
+    // },
+    // getPromisesConstraint(constraint){
+    //   let promises = [];
+    //   for (let k = 0; k < constraint.length; k++){
+    //     this.getPromise(constraint[k].service);
        
-      }
-      return promises;
-    },
+    //   }
+    //   return promises;
+    // },
   getData: async function(){    
       console.log({config:this.config});
-      console.log({service:this.service});
-
-        let resp = await this.$http.get(this.config.urlBase+'/'+this.service).catch(error=>{
-          console.log({error});
-          
+      console.log({service:this.configComponent.service});
+        let ulrGet = ''
+        if (this.configComponent.idFather !== undefined) {
+          ulrGet =this.config.urlBase+'/'+this.configComponent.service+'/?'+this.configComponent.idReferenceFather+'='+this.configComponent.idFather;
+        } else {
+          ulrGet =this.config.urlBase+'/'+this.configComponent.service;
+        }
+        console.log({ulrGet});
+        
+        let resp = await this.$http.get(ulrGet).catch(error=>{
+          console.log({error});          
           this.completeProcess=true;
           this.showModalMessaje =true;
           this.mensssajeModal = `error: no se tiene acceso al servidor`;
@@ -393,8 +579,8 @@ export default {
         });
         console.log({resp});
           let dat = {};
-          this.items = resp.data.rows;
-          
+          this.itemsUnchanged = JSON.parse(JSON.stringify(resp.data.rows));
+          // this.items = resp.data.rows;
           // let constraint = 
           // {
           //   MXE_CODIGO_EQUIPO:{
@@ -406,102 +592,276 @@ export default {
           //         type:'SELECT_EDITABLE'
           //   }
           //   };
-          this.getNameOfForeinKey(this.constraint); // poner await si algo sale mal
-
-          this.totalRows = resp.data.count;
-
-          this.fields = resp.data.columns;
-      
           
-        //   console.log({fields:this.fields});
-          
-         this.selectCorrectColumns(); // poner await si algo sale mal
+        let colums = await this.selectCorrectColumns(resp.data.columns); // poner await si algo sale mal
        
-         this.selectCorrectConstraint(); // poner await si algo sale mal
+        // await this.setfieldsJson(JSON.parse(JSON.stringify(colums))); // poner await si algo sale mal        
+
+        this.items = await this.getItems(resp.data.rows);
+              
+        this.fields = colums;
+
+        this.getNameOfForeinKey(); // poner await si algo sale mal
+        
+        //  this.selectCorrectConstraint(); // poner await si algo sale mal
            
-        // this.fields = this.fields.filter(field => field.key !== this.idName);
-         
-          this.fields.unshift({ key: 'editar', label: 'Editar'});
-
-          this.setfieldsJson(this.fields); // poner await si algo sale mal
-
+        // this.fields = this.fields.filter(field => field.key !== this.configComponent.idName);
+         this.fields.unshift({ value: '_id', text: 'indice'});
+         if(this.configComponent.edit !== false){
+          this.fields.unshift({ value: 'editar', text: 'Editar'});
+         }
+          
+  
+          // this.selected.push({MAN_MDT_FECHA_INICIAL: "2019-03-05T20:50:48.000Z",
+          // MAN_MDT_REALIZADA: 0,
+          // _id: 0});
           console.log({fieldsJson:this.fieldsJson});
 
+          console.log({fields:this.fields});
           console.log(this.items);
           return true;
     },
-    selectCorrectConstraint:async function(){
-        for (let i = 0; i < this.constraint.length; i++) {    
-            if(this.constraint[i].service){            
-              let index = this.fields.findIndex(fiel=>fiel.key === this.constraint[i].localReference);
-              this.fields[index].label = this.constraint[i].label;             
-              this.fields[index].type = this.constraint[i].type;             
-            }
+    getItems(rows){
+      let items = [];
+     for (let i = 0; i < rows.length; i++) {  
+        items[i]={};      
+          for (const key in rows[i]) {
+              if(this.fieldsJson[key] !== undefined){
+                // if(this.configComponent.idName !== key){                                
+                items[i][key] = rows[i][key];
 
-            else{ // unir el campo del contrain con el campo correcto en la tabla
-              let index = this.fields.findIndex(fiel=>fiel.key === this.constraint[i].localReference);
-              this.fields[index].label = this.constraint[i].label;
-              this.fields[index].key = this.constraint[i].localReference;
-              this.fields[index].type = this.constraint[i].type;
-               }
-          }
-          return true;
+                if(this.configComponent.chekboxLocalReference === key){
+                  if(items[i][key] === 1){
+                    this.selected.push({_id:i});
+                  }                                
+                }
+              }
+                       
+          }                
+          this.referencesIds[i]={};
+      }
+      return items;
     },
-    selectCorrectColumns: async function(){
+    // selectCorrectConstraint:async function(){
+
+    //     for (let i = 0; i < this.configComponent.constraint.length; i++) {    
+    //         if(this.configComponent.constraint[i].service){            
+    //           let index = this.fields.findIndex(fiel=>fiel.value === this.configComponent.constraint[i].localReference);
+    //           this.fields[index].text = this.configComponent.constraint[i].label;             
+    //           this.fields[index].type = this.configComponent.constraint[i].type;             
+    //         }
+
+    //         else{ // unir el campo del contrain con el campo correcto en la tabla
+    //           let index = this.fields.findIndex(fiel=>fiel.value === this.configComponent.constraint[i].localReference);
+    //           this.fields[index].text = this.configComponent.constraint[i].label;
+    //           this.fields[index].value = this.configComponent.constraint[i].localReference;
+    //           this.fields[index].type = this.configComponent.constraint[i].type;
+    //            }
+    //       }
+    //       return true;
+    // },
+    /**
+     * contrasta las columnas de entrantes de el bakend con las configuraciones de columns y constraint
+     * unicamente selecciona las columnas de las configuraciones
+     * si en las configuraciones no hay datos entonces pone todos los campos provenientes del bakend
+     * @param {JSON} columns columnas entrantes de la basee de datos resp.data.columns
+     * @returns fields textos 
+     */
+    selectCorrectColumns: async function(columns){
         let deletedKeys = [];
-        if(this.columns.length > 0){
-         for (let i = 0; i < this.fields.length; i++) { 
-             
-               let indexCol = this.columns.findIndex(col =>col.key === this.fields[i].key);
+        let inxeFields = 0;
+        let preFields = [];
+        let constraint = JSON.parse(JSON.stringify(this.configComponent.constraint));
+        if(this.configComponent.columns.length > 0){
+         for (let i = 0; i < columns.length; i++) { 
+            //  this.fields[i] = {};
+              // busca si en el campo de configuración de columnas existe para asignarlo en los fields
+              let indexCol = this.configComponent.columns.findIndex(col =>col.key === columns[i].value);
+                // si no encuentra el campo en las confiiguraciones de columns entones se gusca en las configuraciones del constraint
                 if(indexCol === -1){                    
-                    let indexCont =  this.constraint.findIndex(cons=>cons.localReference === this.fields[i].key);
+                    let indexCont =  this.configComponent.constraint.findIndex(cons=>cons.localReference === columns[i].value);
+                    // si no se encuentra en las configuraciones del contraint ni en las configuraciones de de columns entonces el campo se elimina 
                     if(indexCont === -1){
-                        console.log('eliminar de la cabecera: '+this.fields[i].key);
-                        deletedKeys.push(this.fields[i].key);                       
+                        console.log('eliminar de la cabecera: '+columns[i].value);
+                        deletedKeys.push(columns[i].value);                       
+                    }else{                      
+                      preFields[inxeFields] = columns[i];
+                      preFields[inxeFields].text = constraint[indexCont].label;
+                      preFields[inxeFields].value = constraint[indexCont].localReference;
+                      preFields[inxeFields].type = constraint[indexCont].type;
+                      preFields[inxeFields].sortable= true;                   
+                      
+                      this.fieldsJson[preFields[inxeFields].value] = {
+                          text:preFields[inxeFields].text,
+                          nullable:preFields[inxeFields].nullable,
+                          type:preFields[inxeFields].type
+                        };
+                      inxeFields++; 
                     }
                 }else{
-                    this.fields[i].label = this.columns[indexCol].label;
-                    this.addInputType(this.fields[i]);    
+                    preFields[inxeFields] = columns[i];
+                    preFields[inxeFields].text = this.configComponent.columns[indexCol].label;
+                    this.addInputType(preFields[inxeFields]);  //TODO: el addInputType tengo que eliminarlo
+                    preFields[inxeFields].sortable= true; 
+                    this.fieldsJson[preFields[inxeFields].value] = {
+                          text:preFields[inxeFields].text,
+                          nullable:preFields[inxeFields].nullable,
+                          type:preFields[inxeFields].type
+                        }; 
+                    inxeFields++;  
                 }  
-                this.fields[i].sortable= true;                
+                              
           }
-            for (let k = 0; k < deletedKeys.length; k++) {
-                this.fields = this.fields.filter(field => field.key !== deletedKeys[k]);                    
-            } 
-          }else{
-               for (let i = 0; i < this.fields.length; i++) {  
-                    
-                    this.addInputType(this.fields[i]);   
-                    this.fields[i].sortable= true; 
+            // for (let k = 0; k < deletedKeys.length; k++) {
+            //     this.fields = this.fields.filter(field => field.value !== deletedKeys[k]);                    
+            // } 
+          }
+          else{
+               for (let i = 0; i < columns.length; i++) {                    
+                    preFields[i] = columns[i];
+                    // preFields[inxeFields].text = this.configComponent.columns[indexCol].label;
+                    this.addInputType(preFields[i]);  //TODO: el addInputType tengo que eliminarlo
+                    preFields[i].sortable= true; 
+                    this.fieldsJson[preFields[i].value] = {
+                          text:preFields[i].text,
+                          nullable:preFields[i].nullable,
+                          type:preFields[i].type
+                        };               
                 }
           }
             // delete field no colums
                    
-            for (let i = 0; i < this.noColumns.length; i++) {            
-                this.fields = this.fields.filter(field => field.key !== this.noColumns[i]);  
-                
+            for (let i = 0; i < this.configComponent.noColumns.length; i++) {            
+                preFields = preFields.filter(field => field.value !== this.configComponent.noColumns[i]);                                  
+                delete this.fieldsJson[this.configComponent.noColumns[i]];
             }
-        return true;
+ 
+            // this.fields = preFields;
+        return preFields;
     },
-    onFiltered (filteredItems) {
-      // Trigger pagination to update the number of buttons/pages due to filtering
-      this.totalRows = filteredItems.length
+    // resetModal () {
+    //   this.modalInfo.title = ''
+    //   this.modalInfo.content = ''
+    // },
+    /**
+     * recibe una estructura json que contiene la configuración de 
+     * llaves foraneas de esta tabla
+     * con esa estructura llama a un servicio definido en el bakend
+     * y guarda esos doatos en la variable externalItems
+     * en un json cuya clave es tiene el mismo nombre de el text
+     * de donde se llamaron los datos externos
+     * además crea un campo en la tabla mostrada y le añade un campo
+     * con el text definido por las configuraciones, además inserta los 
+     * datos del campo seleccionado en los datos externos,
+     * además compara los las llaves foraneas y pone en su correcta  ubicación 
+     * el nombre del campo deseado en la tabla mostrada.
+     * ejemplo de una configuración:
+     *    let configComponent.constraint = [{
+                  localReference:'MXE_CODIGO_EQUIPO' //atributo local del id foraneo
+                  reference:'EQU_CODIGO',           //atributo del id de la tabla foranea
+                  attributeNameSelect:'EQU_NOMBRE', //atributo de la tabbla foranea que queremos reemplazar
+                  service:'equipo',                 //servicio al que queremos llamar ejemplo localhost:3000/nombreDelServicio
+                  text:'Equipo',                   //nombre del text que le ponemos poner en la tabla
+                  setPositionInTable:3,             //posición en donde queremos ponerlo en la tabla
+                  type:'SELECT_EDITABLE'            //tipos disponibles 'SELECT_EDITABLE', 'SELECT','DATE_PIKER'
+                  nullable:'N'                      //si el dato puede ser nulo entonce 'Y' si no es nulo entonce 'N'
+            },{...}
+            ];
+     */
+    getNameOfForeinKey:async function(){ 
+  
+      try {//eliminar los items que no se van a usar
+        // al actualizar no se está trayendo bien el id como debe ser , creo que es por el type en el metodo setcolimnscorrects
+        let constraint = this.configComponent.constraint;
+        // este código sirve para la configuración de contraint por array
+        for (let k = 0; k < constraint.length; k++) { 
+          
+            if(constraint[k].service){    
+  
+                let resp = await this.$http.get(this.config.urlBase+'/'+constraint[k].service).catch((error=>{
+                        this.mensssajeModal='no se encontró el servicio\n'+this.config.urlBase+'/'+constraint[k].service+'\n'+error.response.data.error
+                        this.showModalMessaje=true;
+                        this.completeProcess = true;
+
+                }))
+                this.externalItems[constraint[k].label] = resp.data.rows;
       
-      this.currentPage = 1
-    },
+              for (let i = 0; i < this.items.length; i++) {              
+                // if(this.items[i][constraint[k].localReference]){
+                    for (let j = 0; j < resp.data.rows.length; j++) {
+                        if(resp.data.rows[j][constraint[k].reference] === this.items[i][constraint[k].localReference]){              
+                        
+                            this.referencesIds[i][constraint[k].localReference] =  resp.data.rows[j][constraint[k].reference];
+                            this.items[i][constraint[k].localReference] = resp.data.rows[j][constraint[k].attributeNameSelect];
+                            break;
+                        }
+                    }  
+                // }
+            }
+
+          }else{
+          
+            if(constraint[k].data){
+                  this.externalItems[constraint[k].label] = constraint[k].data;
+              }else{
+                console.log(constraint[k].label+' no tiene la configuración data');
+                
+              }
+          }
+          }
+        //// ---------------- hasta aqui------
+        // este código es para la nueva configuración de la configuracion contrain por JSON
+      
+          // for (const keyConstrain in constraint) {    
+          // let resp = await this.$http.get(this.config.urlBase+'/'+constraint[keyConstrain].service);
+          //   console.log('service'+constraint[keyConstrain].service);     
+          // for (let i = 0; i < this.items.length; i++) {
+          //   for (let j = 0; j < resp.data.rows.length; j++) {
+          //         if(resp.data.rows[j][constraint[keyConstrain].reference] === this.items[i][keyConstrain]){  
+          //           // console.log('encontrado');                             
+          //           this.items[i][constraint[keyConstrain].label] = resp.data.rows[j][constraint[keyConstrain].attributeNameSelect];
+          //           break;
+          //         }
+          //       }           
+          //   }
+          // }
+          this.completeProcess = true;
+          
+            console.log({fields:this.fields});      
+            console.log('proceso de busqueda de contraints completo');
+            
+            return true;
+            // resolve(true);
+        // });
+        }catch (error) {
+        console.log(error)
+        // this.showModalMessaje=true;
+        this.completeProcess = true;
+        }
+      },
+    // onFiltered (filteredItems) {
+    //   // Trigger pagination to update the number of buttons/pages due to filtering
+    //   this.totalRows = filteredItems.length
+      
+    //   this.currentPage = 1
+    // },
     showAdd(){
       // console.log({externalItemsLength:this.externalItems.length});s
+      // console.log({dataAdd:this.dataAdd});
       
       if(this.fields.length > 0 ){
         if(this.completeProcess){
         this.dataAddAdicional={};   
         for (let i = 0; i < this.fields.length; i++) {   
-            if(this.fields[i].key !== 'editar'){
-                if(this.fields[i].type === 'datetime-local'){
-                  this.dataAdd[this.fields[i].key] = new Date();  
+          //  console.log({fieldsi:this.fields[i]});
+            if(this.fields[i].value !== 'editar'){
+              if(this.fields[i].value !== '_id'){
+                if(this.fields[i].value === 'datetime-local'){
+                  this.dataAdd[this.fields[i].value] = new Date();  
                 }else{
-                  this.dataAdd[this.fields[i].key] = '';   
+                  this.dataAdd[this.fields[i].value] = '';   
                 }                
+              }
             }
         }   
         this.adding = true;
@@ -516,130 +876,59 @@ export default {
 
      
     },
-    showUpdate (item, index) {
-   
+    showUpdate (item, index) {  
       
       this.animate = '';
       this.animateIndexAux=0;
       this.countComponents=0;
       
         // cuenta los componentes que se van a mostrar en la lista de edición
-        for (let i = 0; i < this.fields.length; i++) {         
-              if(this.fields[i].type === 'SELECT_EDITABLE'){
-                  this.countComponents++;                
-              }else if(this.fields[i].type === 'datetime-local'){
-                  this.countComponents++;                 
-              }               
-        }
-        console.log({countComponents:this.countComponents});
        
-      this.indexTableUbdateSelected = ((this.currentPage-1)*this.perPage)+index;
+      //  this.indexTableUbdateSelected === ((this.pagination.page-1)*this.pagination.rowsPerPage)+index
+      // this.indexTableUbdateSelected = ((this.pagination.page-1)*this.pagination.rowsPerPage)+index;
+      this.indexTableUbdateSelected = item._id;
 
 
       
       for (const key in this.fieldsJson) {
-          if(key !== 'editar'){            
-            if(item[key]!== null){
-              this.dataUpdate[key] = item[key]+'';
-            }else{
-              this.dataUpdate[key]='';
+          if(key !== 'editar'){
+            if(key !== '_id'){            
+              if(item[key]!== null){
+                if(this.itemsUnchanged[this.indexTableUbdateSelected][key]){
+                  this.dataUpdate[key] = JSON.parse(JSON.stringify(this.itemsUnchanged[this.indexTableUbdateSelected][key]))+'';
+                }else{
+                  this.dataUpdate[key] = item[key];
+                }
+                
+              }else{
+                this.dataUpdate[key]='';
+              }
+          
             }
-        
           }
       }
+      console.log({externalItems:this.externalItems});
+      
+      
+      
+      for (let i = 0; i < this.fields.length; i++) {         
+            if(this.fields[i].type === 'SELECT_EDITABLE'){
+              // console.log({fieldsi:this.fields[i].value});
+              // console.log({fieldsJson:this.fieldsJson[this.fields[i].value].text});
+              // console.log({externalItems2:this.externalItems[this.fieldsJson[this.fields[i].value].text]});
+                
+                this.countComponents++;                
+            }else if(this.fields[i].type === 'datetime-local'){
+                this.countComponents++;                 
+            }               
+      }
+      console.log({countComponents:this.countComponents});
 
       
       this.editing= true;   
    
     },
-    resetModal () {
-      this.modalInfo.title = ''
-      this.modalInfo.content = ''
-    },
-    /**
-     * recibe una estructura json que contiene la configuración de 
-     * llaves foraneas de esta tabla
-     * con esa estructura llama a un servicio definido en el bakend
-     * y guarda esos doatos en la variable externalItems
-     * en un json cuya clave es tiene el mismo nombre de el label
-     * de donde se llamaron los datos externos
-     * además crea un campo en la tabla mostrada y le añade un campo
-     * con el label definido por las configuraciones, además inserta los 
-     * datos del campo seleccionado en los datos externos,
-     * además compara los las llaves foraneas y pone en su correcta  ubicación 
-     * el nombre del campo deseado en la tabla mostrada.
-     * ejemplo de una configuración:
-     *    let constraint = [{
-                  localReference:'MXE_CODIGO_EQUIPO' //atributo local del id foraneo
-                  reference:'EQU_CODIGO',           //atributo del id de la tabla foranea
-                  attributeNameSelect:'EQU_NOMBRE', //atributo de la tabbla foranea que queremos reemplazar
-                  service:'equipo',                 //servicio al que queremos llamar ejemplo localhost:3000/nombreDelServicio
-                  label:'Equipo',                   //nombre del label que le ponemos poner en la tabla
-                  setPositionInTable:3,             //posición en donde queremos ponerlo en la tabla
-                  type:'SELECT_EDITABLE'            //tipos disponibles 'SELECT_EDITABLE', 'SELECT','DATE_PIKER'
-                  nullable:'N'                      //si el dato puede ser nulo entonce 'Y' si no es nulo entonce 'N'
-            },{...}
-            ];
-     */
-    getNameOfForeinKey:async function(constraint){ 
-      for (let i = 0; i < this.items.length; i++) {
-        this.referencesIds[i]={};
-      }
-    // este código sirve para la configuración de contraint por array
-    for (let k = 0; k < constraint.length; k++) { 
-       
-        if(constraint[k].service){       
-            let resp = await this.$http.get(this.config.urlBase+'/'+constraint[k].service);
-            this.externalItems[constraint[k].label] = resp.data.rows;
-   
-          for (let i = 0; i < this.items.length; i++) {
-            
-            for (let j = 0; j < resp.data.rows.length; j++) {
-                  if(resp.data.rows[j][constraint[k].reference] === this.items[i][constraint[k].localReference]){               
-                
-                    this.referencesIds[i][constraint[k].localReference] =  resp.data.rows[j][constraint[k].reference]
-                    this.items[i][constraint[k].localReference] = resp.data.rows[j][constraint[k].attributeNameSelect];
-                    break;
-                  }
-                }  
-         
-                    
-          }
-
-      }else{
-      
-         if(constraint[k].data){
-              this.externalItems[constraint[k].label] = constraint[k].data;
-          }else{
-            console.log(constraint[k].label+' no tiene la configuración data');
-            
-          }
-      }
-      }
-    //// ---------------- hasta aqui------
-    // este código es para la nueva configuración de la configuracion contrain por JSON
-  
-      // for (const keyConstrain in constraint) {    
-      // let resp = await this.$http.get(this.config.urlBase+'/'+constraint[keyConstrain].service);
-      //   console.log('service'+constraint[keyConstrain].service);     
-      // for (let i = 0; i < this.items.length; i++) {
-      //   for (let j = 0; j < resp.data.rows.length; j++) {
-      //         if(resp.data.rows[j][constraint[keyConstrain].reference] === this.items[i][keyConstrain]){  
-      //           // console.log('encontrado');                             
-      //           this.items[i][constraint[keyConstrain].label] = resp.data.rows[j][constraint[keyConstrain].attributeNameSelect];
-      //           break;
-      //         }
-      //       }           
-      //   }
-      // }
-      this.completeProcess = true;
-        console.log('proceso de busqueda de contraints completo');
-        
-        return true;
-        // resolve(true);
-    // });
     
-  },
   dataSaveOnchange(value,key){
     // busca si el dato que llega 
     // si en los label de los constraint tiene la misma llave que llega
@@ -649,7 +938,7 @@ export default {
     // en los parametros value llega un array con la siguiente estrctura value :{label,value}
     // en el campo value.value contiene la llave foranea de la tabla referenciada
    
-    const isConstraint = this.constraint.filter(resp => resp.localReference === key)
+    const isConstraint = this.configComponent.constraint.filter(resp => resp.localReference === key)
     
     // si isConstraint.length > 0 quiere decir que el dato que llega hace referencia a una llave foranea
     // entonces los datos que llegan se insertan en la variable dataAddAdicional que serán insertados luego en la función save()
@@ -673,7 +962,7 @@ export default {
     // en los parametros value llega un array con la siguiente estrctura value :{label,value}
     // en el campo value.value contiene la llave foranea de la tabla referenciada
    
-    const isConstraint = this.constraint.filter(resp => resp.localReference === key);
+    const isConstraint = this.configComponent.constraint.filter(resp => resp.localReference === key);
   
     // si isConstraint.length > 0 quiere decir que el dato que llega hace referencia a una llave foranea
     // entonces los datos que llegan se insertan en la variable dataAddAdicional que serán insertados luego en la función save()
@@ -691,36 +980,38 @@ export default {
     
     console.log({type});   
    
-    let InputTextMdb = this.InputTextMdb;
+    // let InputTextMdb = this.InputTextMdb;
     // console.log({type});
     
     if(type === 'text'){
-        return this.InputTextMdb;
+        return this.InputText;
     }else if(type === 'SELECT_EDITABLE'){
         // this.countComponents++;
         return this.inputSelectEditable;
     }else if(type === 'datetime-local'){
         // this.countComponents++;
-        return this.datePicker;
+        return this.InputText
+        // return this.datePicker;
     }else{
-       return this.InputTextMdb;
+       return this.InputText;
     }
+   
   },
   setfieldsJson(fields){
     for (let i = 0; i < fields.length; i++) {
-      this.fieldsJson[fields[i].key] = {
-        label:fields[i].label,
+      this.fieldsJson[fields[i].value] = {
+        text:fields[i].text,
         nullable:fields[i].nullable,
         type:fields[i].type
       };
-      
+     
     }
   },
   addInputType(field){
-    // for (let j = 0; j < this.columns.length; j++) { // reemplazar los campos que llegan de columns en las columnas
-    //         const element = this.columns[j];              
+    // for (let j = 0; j < this.configComponent.columns.length; j++) { // reemplazar los campos que llegan de columns en las columnas
+    //         const element = this.configComponent.columns[j];              
     //     }    
-    // console.log(this.columns);
+    // console.log(this.configComponent.columns);
     
    
     
@@ -748,56 +1039,57 @@ export default {
     }else{
       return null
     }  
-  }
-
   },
+  /**
+   * esta funcion des selecciona todos los checkbox
+   */
+  toggleAll () {
+        if (this.selected.length) this.selected = []
+        else this.selected = this.indexedItems.slice()
+      },
+  /**
+   * este método sirve para por hacer sort con los chechBox
+   */
+  changeSort (column) {
+    if (this.pagination.sortBy === column) {
+      this.pagination.descending = !this.pagination.descending
+    } else {
+      this.pagination.sortBy = column
+      this.pagination.descending = false
+    }
+  },
+
+  },watch: {
+    pagination:{
+      handler () {
+        console.log({pagination:this.pagination});        
+      }
+    },
+    showModalMessajeDelete:{
+      handler () {
+        if(this.showModalMessajeDelete === false){
+          // console.log('eliminar registro');     
+          //   let id = this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName]
+          //  console.log({id});     
+          // this.$http.delete(this.config.urlBase+'/'+this.configComponent.service+'/'+id).then(resp=>{
+          //   console.log({resp});
+          //   this.getData();
+          //   this.editing=false;
+          // },error=>{     
+          //   this.showModalMessaje =true;
+          //   this.mensssajeModal = error;
+          //   this.editing=true;
+          // });     
+        }    
+      }
+    }   
+  },
+ 
     props: {
-        // mensssajeModal:"Error:",
-        // showModalMessaje: false,
-        columns:{},
-        noColumns:Array,
-        tableTitle:'',
-        service:'',
-        idName:'',
-        // config,
-        // dataAdd:{},
-        // dataAddAdicional:{},
-        // dataUpdate:{},
-        // dataUpdateAdicional:{},
-        // data:{},
-        // login: false,
-        // editing:false,
-        // adding:false,
-
-        // items:[],    
-        // fields:[],
-        // fieldsJson:{},// esta varaible contiene los mismos datos que en la variable fields con la diferencia de que es un json que tiene como clave la llave de la tabla para reducir el procesamiento
-
-        // itemsEquipos:[],
-        // fieldsEquipos:[],
+      
+        configComponent:{},
         
-        constraint :{},
-        
-        // currentPage: 1,
-        // perPage: 6,
-        // totalRows: 10,
-        // pageOptions: [ 5, 10, 15 ],
-        // sortBy: null,
-        // sortDesc: false,
-        // sortDirection: 'asc',
-        // filter: null,
-        // modalInfo: { title: '', content: '' },
-        // referencesIds:[],
-        // selected:'',
-        // externalItems:{},
-        // InputTextMdb,
-        // inputSelectEditable,
-        // datePicker,
-        // animate:'',//animated bounce infinite
-        // animateIndexAux:0,
-        // countComponents:0,
-        // indexTableUbdateSelected:0
-  },    
+  }, 
   data(){
     return {
     transProps: {
@@ -806,6 +1098,7 @@ export default {
     },
       mensssajeModal:"Error:",
       showModalMessaje: false,
+      showModalMessajeDelete:false,
     //   service:'',
     //   idName:'',
       config,
@@ -818,7 +1111,8 @@ export default {
       editing:false,
       adding:false,
 
-      items:[],    
+      items:[], 
+      itemsUnchanged:[],   
       fields:[],
       fieldsJson:{},// esta varaible contiene los mismos datos que en la variable fields con la diferencia de que es un json que tiene como clave la llave de la tabla para reducir el procesamiento
 
@@ -827,40 +1121,100 @@ export default {
       
     //   constraint :[],
 
-      currentPage: 1,
-      perPage: 6,
-      totalRows: 10,
-      pageOptions: [ 5, 10, 15 ],
-      sortBy: null,
-      sortDesc: false,
-      sortDirection: 'asc',
-      filter: null,
+      // currentPage: 1,
+      // perPage: 6,
+      // totalRows: 10,
+      // pageOptions: [ 5, 10, 15 ],
+      // sortBy: null,
+      // sortDesc: false,
+      // sortDirection: 'asc',
+      // filter: null,
       modalInfo: { title: '', content: '' },
       referencesIds:[],
-      selected:'',
+      selected:[],
+     
       externalItems:{},
-      InputTextMdb,
+      InputText,
       inputSelectEditable,
-      datePicker,
+    //   datePicker,
       animate:'',//animated bounce infinite
       animateIndexAux:0,
       countComponents:0,
       indexTableUbdateSelected:0,
       completeProcess:false,
+      search: '',
+      pagination: {},
       // variables de control de doble clic -->
         clickResult: [],
-        clickDelay: 700,
+        clickDelay: 300,
         clickClicks: 0,
         clickTimer: null
     // <--variables de control de doble clic
     };
-  }
+  },
+  beforeCreate() {
+    console.log('antes de crearse');
+    
+  },
+  created() {
+    let configTableDefault= {
+        columns:[],
+        noColumns:[],
+        tableTitle:'',
+        service:'',
+        idName:'',
+        add:true,
+        edit:true,
+        pagination:true,
+        // idFather:'',
+        // withChekbox:false,
+        // chekboxLocalReference:'',
+        expand:false,
+        paginationRowsPerPage:5,
+        paginationPage:1,
+        constraint :[],
+    }
+    console.log({configComponent:this.configComponent});  
+    for (const key in configTableDefault) {
+      if(this.configComponent[key] === undefined){
+        console.log({keyUndefined:key});        
+        this.configComponent[key] = configTableDefault[key];
+      }
+    } 
+    this.pagination= {
+        rowsPerPage:this.configComponent.paginationRowsPerPage,
+        page:this.configComponent.paginationPage,      
+        }
+  },
 }
 </script>
 
 <style>
 .table .flip-list-move {
   transition: transform 1s;
+}
+.rounded{
+  border-radius: 10px;
+   position: absolute;
+  width:90%;
+  left: 5%;
+  display: flex;
+  justify-content: center; 
+  
+  /*max-width: 600px; 
+  width: 100%; */
+  /* margin:auto; */
+  /* width:fit-content; */
+}
+.table_head{
+  width:90%;
+  padding:1rem;
+  margin:auto;
+  border-radius: 5px;
+  background: rgb(9,9,121);
+  background: linear-gradient(90deg, rgba(9,9,121,1) 0%, rgba(1,185,237,1) 20%, rgba(0,212,255,1) 80%, rgba(9,9,121,1) 100%);
+  position: absolute;
+  left: 5%;  z-index: 1;
 }
 
 /* .table-row-move {
