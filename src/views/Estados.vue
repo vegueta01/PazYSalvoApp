@@ -1,16 +1,16 @@
 <template> 
     <div>
-        <tableAutomatic2 v-bind="{service,idName,constraint,tableTitle,columns,noColumns}" />
+        <tableAutomatic v-bind="{service,idName,constraint,tableTitle,columns,noColumns}" />
     </div>   
     
 </template>
 
 <script>
-  import tableAutomatic2 from '@/components/tableAutomatic2.vue'
-
+  import tableAutomatic from '@/components/tableAutomatic.vue'
+import inputSelectEditable from '@/components/inputSelectEditable.vue'
 export default {
         components:{
-            tableAutomatic2
+            tableAutomatic
         },
         data() {
             return { 
@@ -31,6 +31,7 @@ export default {
                 noColumns:[],
                 constraint :[
                     {
+                    component:inputSelectEditable,
                     localReference:'GEN_EST_TAB_ID',//Gen_est_tab_id
                     reference:'GEN_TAB_ID',
                     attributeNameSelect:'GEN_TAB_ID_NOMBRE_REFERENCIA',

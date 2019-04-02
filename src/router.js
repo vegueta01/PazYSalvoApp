@@ -30,6 +30,53 @@ export default new Router({
       path: '/estados',
       name: 'estados',
       component: () => import('./views/Estados.vue')
+    },
+    {
+      path: '/asignacion',
+      name: 'Asignación',
+      component: () => import('./views/Asignacion.vue')
+    },
+    {
+      path: '/consultas',
+      name: 'Consultas',
+      component: () => import('./views/Consultas.vue')
+    },
+    {
+      path: '/devolucion',
+      name: 'Devolución',
+      component: () => import('./views/Devolucion.vue')
+    },
+    {
+      path: '/empleados',
+      name: 'Empleados',
+      component: () => import('./views/Empleados.vue')
+    },
+    {
+      path: '/tipo_elemento',
+      name: 'Tipo equipo',
+      component: () => import('./views/TipoElemento.vue')
+    },
+    {
+      path: '/estados_tablas',
+      name: 'Estados de tablas',
+      component: () => import('./views/EstadosDeTablas.vue')
+    },
+    {
+      path: '/marca_equipo',
+      name: 'Marca del equipo',
+      component: () => import('./views/MarcaElemento.vue')
+    },
+    {
+      path: '/elementos',
+      name: 'Elementos',
+      component: () => import('./views/Elementos.vue')
+    },
+    {
+      path: '/tipo_transaccion',
+      name: 'Tipo transacción',
+      component: () => import('./views/TipoTransaccion.vue')
     }
+
+    
   ]
 })

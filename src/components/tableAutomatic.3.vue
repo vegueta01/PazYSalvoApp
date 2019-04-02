@@ -137,13 +137,11 @@
                       @click.stop="clickCheckBox(props)"
                     ></v-checkbox>
                   </td>
-                  <td class="justify-center layout px-0" v-if="configComponent.edit === false && configComponent.buttonItemIcons">
+                  <td class="justify-center layout px-0" v-if="configComponent.edit === false">
                     <v-btn  icon  v-if="configComponent.expand">
                       <v-icon>{{expandMoreIcon.item._id}}</v-icon>
                     </v-btn>
-                     <v-btn @click.stop="buttonIcon.function(itemsUnchanged[props.item._id])" 
-                      icon small v-for="buttonIcon in configComponent.buttonItemIcons" 
-                       :key="buttonIcon.icon">
+                     <v-btn @click.stop="buttonIcon.function(itemsUnchanged[props.item._id])"  icon small v-for="buttonIcon in configComponent.buttonItemIcons"  :key="buttonIcon.icon">
                       <v-icon  
                           small
                       >
@@ -159,7 +157,7 @@
                      <v-icon small > edit</v-icon>
                   </v-btn>
                   
-                  <v-btn  icon small @click.stop="deleted(props.item._id)">
+                  <v-btn  icon small @click.stop="deleted()">
                     <v-icon small   > delete</v-icon>
                   </v-btn>
 
@@ -220,17 +218,14 @@
               type:fieldsJson[key].type,
               options: externalItems[fieldsJson[key].text],
               constraints: configComponent.constraint.filter(con => con.localReference === key)[0] -->
-        <div v-for="(item, key) in dataAdd" :key="key " >
-          <component v-if="!fieldsJson[key].notAdd"
-          
+        <component v-for="(item, key) in dataAdd" :key="key " 
+          class="mt-3"
             v-bind="{
               configComponent:configItemFormAdd(item,key),              
             }"
             v-on:input="dataAddOnchange($event,key)"
-            v-bind:is="selectInputElement(key)">        
+            v-bind:is="selectInputElement(fieldsJson[key].type)">        
             </component>
-        </div>
-        
         </v-container>
     </v-card-text>
         <v-card-actions center>
@@ -255,22 +250,19 @@
               options: externalItems[fieldsJson[key].text],
               referenceId:selectReferenceId(key),//buscar la posición de el registro y envialo
               constraints: configComponent.constraint.filter(con => con.localReference === key)[0] -->
-            <div v-for="(item, key) in dataUpdate" :key="key " > 
-            <!-- <component v-for="(item, key) in dataUpdate" :key="key"  @input="updateChangeInput" -->
-           <component v-if="!fieldsJson[key].notEditable"
+            <component v-for="(item, key) in dataUpdate" :key="key"  @input="updateChangeInput"
             v-bind="{
               configComponent:configItemFormUpdate(item,key),             
               }"       
             v-on:input="dataSaveOnchange($event,key)"
-            v-bind:is="selectInputElement(key)">        
+            v-bind:is="selectInputElement(fieldsJson[key].type)">        
           </component>
-          </div>
         </v-container>
     </v-card-text>
         <v-card-actions center>
             <v-spacer></v-spacer>
               <v-btn @click="updated(dataUpdate)" color="primary" :class="animate">Actualizar</v-btn>
-              <!-- <v-btn @click="deleted()" color="warning">Eliminar</v-btn> -->
+              <v-btn @click="deleted()" color="warning">Eliminar</v-btn>
         </v-card-actions>
     </v-card>
   </v-dialog>
@@ -389,22 +381,17 @@ export default {
       if(newConfig.service){
         if(this.itemsUnchanged.length > 0){
           // console.log({idLocalReferenceComponent:this.configComponent.idLocalReferenceComponent});
-          newConfig.dataFather = this.itemsUnchanged[this.indexTableUbdateSelected];
-          // if(this.configComponent.configExpandComponent.idReferenceFather !== undefined){
-            
-          //   console.log({newConfigDataFather:newConfig.dataFather});
-            
-          //   // if(this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName] !== undefined){
-          //   //   newConfig.idFather = this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName];
-          //   //   // newConfig.service = newConfig.service+'/?'+this.configComponent.idReferenceFather+'='+this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName];
- 
-          //   // // }else if(this.configComponent.dataFather){                 
-          //   // }else{
-              
-          //   //   console.log({itemsUnchanged:this.itemsUnchanged});
-          //   //   console.log({idLocalReferenceComponent:this.configComponent.idLocalReferenceComponent});
-          //   // }
-          // }
+          if(this.configComponent.configExpandComponent.idReferenceFather !== undefined){
+            if(this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName] !== undefined){
+              newConfig.idFather = this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName];
+              // newConfig.service = newConfig.service+'/?'+this.configComponent.idReferenceFather+'='+this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName];
+              console.log({configExpandComponentService:newConfig.service}); 
+              console.log({configExpandComponentidFather:newConfig.idFather}); 
+            }else{
+              console.log({itemsUnchanged:this.itemsUnchanged});
+              console.log({idLocalReferenceComponent:this.configComponent.idLocalReferenceComponent});
+            }
+          }
 
           if(this.configComponent.expandIndex){
             newConfig.expandIndex = (this.configComponent.expandIndex + 1);
@@ -554,12 +541,9 @@ export default {
         
       
       let insetData = Object.assign({}, insetData , data ); 
-      if (this.configComponent.filterService !== undefined) {        
-          // insetData[this.configComponent] = this.configComponent.idFather;
-          insetData[this.configComponent.filterService.localIdName] = this.configComponent.dataFather[this.configComponent.filterService.fatherIdName];
-          // constraint[k].filterService.localIdName+'='+this.configComponent.dataFather[this.configComponent.filterService.fatherIdName];
+      if (this.configComponent.idFather !== undefined) {        
+          insetData[this.configComponent.idReferenceFather] = this.configComponent.idFather;
         }
-        //  urlContraint = this.config.urlBase+'/'+constraint[k].service+'/?'+constraint[k].filterService.localIdName+'='+this.configComponent.dataFather[this.configComponent.filterService.fatherIdName];
       
       if(this.configComponent.saveDataDefault){
         for (const key in this.configComponent.saveDataDefault) {         
@@ -613,9 +597,6 @@ export default {
       console.log({indexTableUbdateSelected:this.indexTableUbdateSelected});
       console.log({itemsUnchanged:this.itemsUnchanged});      
       insetData[this.configComponent.idName] = this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName];
-      // if(this.configComponent.filterService !== undefined){
-      //   insetData[this.configComponent.filterService.localIdName] = this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.filterService.localIdName];
-      // }
       console.log({insetData});     
       let resp = await this.$http.put(this.config.urlBase+'/'+this.configComponent.service,insetData).catch(error=>{
         this.showModalMessaje =true;
@@ -635,26 +616,25 @@ export default {
       //   this.editing=true; 
       // });
     },
-    deleted(index){
+    deleted(){
       let text='';
       let iAux = true;
       for (let i = 0; i < this.fields.length; i++) {
         if(this.fields[i].value.toLowerCase() !== 'editar'){
             if(this.fields[i].value.toLowerCase() !== '_id'){
               if(iAux){
-                text+=this.fields[i].text +' = '+this.items[index][this.fields[i].value]
+                text+=this.fields[i].text +' = '+this.items[this.indexTableUbdateSelected][this.fields[i].value]
                 iAux = false;
               }else{          
-                  text+=' ,'+this.fields[i].text +' = '+this.items[index][this.fields[i].value]
+                  text+=' ,'+this.fields[i].text +' = '+this.items[this.indexTableUbdateSelected][this.fields[i].value]
               }
             }
           }
       }
       this.mensssajeModal ='Desea eliminar el registro: '+text;
       this.showModalMessajeDelete = true;
-      
-    let id = this.itemsUnchanged[index][this.configComponent.idName]
-    this.idPrepareDeleteItem = id;
+
+    let id = this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName]
     console.log({id});     
           // this.$http.delete(this.config.urlBase+'/'+this.configComponent.service+'/'+id).then(resp=>{
           //   console.log({resp});
@@ -667,8 +647,7 @@ export default {
           // });
     },
     deleteConfirm(){
-      // let id = this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName]
-      let id = this.idPrepareDeleteItem;
+      let id = this.itemsUnchanged[this.indexTableUbdateSelected][this.configComponent.idName]
       console.log({id});     
       
           this.$http.delete(this.config.urlBase+'/'+this.configComponent.service+'/'+id).then(resp=>{
@@ -699,13 +678,8 @@ export default {
       console.log({config:this.config});
       console.log({service:this.configComponent.service});
         let ulrGet = ''
-        // if (this.configComponent.idFather !== undefined) {
-        //   ulrGet =this.config.urlBase+'/'+this.configComponent.service+'/?'+this.configComponent.idReferenceFather+'='+this.configComponent.idFather;
-        // } else {
-        if (this.configComponent.filterService !== undefined) {
-          // ulrGet =this.config.urlBase+'/'+this.configComponent.service+'/?'+this.configComponent.idReferenceFather+'='+this.configComponent.dataFather[this.configComponent.idReferenceFather];
-          ulrGet =this.config.urlBase+'/'+this.configComponent.service+'/?'+this.configComponent.filterService.localIdName+'='+this.configComponent.dataFather[this.configComponent.filterService.fatherIdName];
-          //  urlContraint = this.config.urlBase+'/'+constraint[k].service+'/?'+constraint[k].filterService.localIdName+'='+this.configComponent.dataFather[this.configComponent.filterService.fatherIdName];
+        if (this.configComponent.idFather !== undefined) {
+          ulrGet =this.config.urlBase+'/'+this.configComponent.service+'/?'+this.configComponent.idReferenceFather+'='+this.configComponent.idFather;
         } else {
           ulrGet =this.config.urlBase+'/'+this.configComponent.service;
         }
@@ -771,15 +745,13 @@ export default {
               if(this.fieldsJson[key] !== undefined){
                 
                 // if(this.configComponent.idName !== key){                                
-                if(this.fieldsJson[key].type){
-                  if(this.fieldsJson[key].type.toLowerCase() === 'datetime-local'){
-                    items[i][key] = new Date(rows[i][key]).toLocaleString()
-                  }else{
-                    items[i][key] = rows[i][key];
-                  }
+                
+                if(this.fieldsJson[key].type.toLowerCase() === 'datetime-local'){
+                  items[i][key] = new Date(rows[i][key]).toLocaleString()
                 }else{
                   items[i][key] = rows[i][key];
                 }
+
                 // agrega los datos seleccionados si la tabla tiene chekbox
                 if(this.configComponent.chekboxLocalReference === key){
                   if(items[i][key] === 1){
@@ -822,52 +794,33 @@ export default {
         let deletedKeys = [];
         let inxeFields = 0;
         let preFields = [];
-        let constraint = this.configComponent.constraint;
-        for (let i = 0; i < constraint.length; i++) {
-            if(constraint[i].configComponentChild){
-              if(constraint[i].configComponentChild.localReference){
-                  constraint.push(this.findInComponetnChildConstraint(constraint[i].configComponentChild,columns));
-              }
-            }                      
-          }
-        console.log({constraint});
-        
-        if(this.configComponent.columns.length > 0 || this.configComponent.constraint.length > 0){
+        let constraint = JSON.parse(JSON.stringify(this.configComponent.constraint));
+        if(this.configComponent.columns.length > 0){
          for (let i = 0; i < columns.length; i++) { 
             //  this.fields[i] = {};
               // busca si en el campo de configuración de columnas existe para asignarlo en los fields
               let indexCol = this.configComponent.columns.findIndex(col =>col.key === columns[i].value);
                 // si no encuentra el campo en las confiiguraciones de columns entones se gusca en las configuraciones del constraint
-                if(indexCol === -1){                                  
-                    // let indexCont =  this.configComponent.constraint.findIndex(cons=>cons.localReference === columns[i].value);
-                    let indexCont = constraint.findIndex(cons=>cons.localReference === columns[i].value);
+                if(indexCol === -1){                    
+                    let indexCont =  this.configComponent.constraint.findIndex(cons=>cons.localReference === columns[i].value);
                     // si no se encuentra en las configuraciones del contraint ni en las configuraciones de de columns entonces el campo se elimina 
                     if(indexCont === -1){
                         console.log('eliminar de la cabecera: '+columns[i].value);
                         deletedKeys.push(columns[i].value);                       
-                    }else{     
-
+                    }else{                      
                       preFields[inxeFields] = columns[i];
                       preFields[inxeFields].text = constraint[indexCont].label;
                       preFields[inxeFields].value = constraint[indexCont].localReference;
                       preFields[inxeFields].type = constraint[indexCont].type;
-                      // if( constraint[indexCont].component){
-                      //    preFields[inxeFields].component = constraint[indexCont].component;
-                      // }
                       preFields[inxeFields].sortable= true;                   
                       
                       this.fieldsJson[preFields[inxeFields].value] = {
                           text:preFields[inxeFields].text,
                           nullable:preFields[inxeFields].nullable,
-                          type:preFields[inxeFields].type,
-                          configComponent: constraint[indexCont],
-                          notEditable:constraint[indexCont].notEditable,
-                          notAdd:constraint[indexCont].notAdd
+                          type:preFields[inxeFields].type
                         };
                       inxeFields++; 
-                     
                     }
-                  
                 }else{
                     preFields[inxeFields] = columns[i];
                     preFields[inxeFields].text = this.configComponent.columns[indexCol].label;
@@ -876,9 +829,7 @@ export default {
                     this.fieldsJson[preFields[inxeFields].value] = {
                           text:preFields[inxeFields].text,
                           nullable:preFields[inxeFields].nullable,
-                          type:preFields[inxeFields].type,
-                          notEditable:columns[i].notEditable,
-                          notAdd:columns[i].notAdd
+                          type:preFields[inxeFields].type
                         }; 
                     inxeFields++;  
                 }  
@@ -910,48 +861,6 @@ export default {
  
             // this.fields = preFields;
         return preFields;
-    },
-    findInComponetnChildConstraint(configChild,columns){
-      // console.log({configChildLocalReference:configChild.localReference});
-      
-      for (let i = 0; i < columns.length; i++) {      
-        // console.log({columnsialue:columns[i].value});
-          
-        if(configChild.localReference === columns[i].value){
-          // console.log('agregado sub contraint '+configChild.localReference );
-          
-            // preFields[inxeFields] = columns[i];
-            // preFields[inxeFields].text = configChild.label;
-            // preFields[inxeFields].value = configChild.localReference;
-            // preFields[inxeFields].type = configChild.type || columns[i].type;
-            // preFields[inxeFields].sortable= true;                   
-            // // if( configChild.component){
-            // //     preFields[inxeFields].component = configChild.component;
-            // // }
-            // this.fieldsJson[preFields[inxeFields].value] = {
-            //     text:preFields[inxeFields].text,
-            //     nullable:preFields[inxeFields].nullable,
-            //     type:preFields[inxeFields].type,
-            //     configComponent:configChild,
-            //     notEditable:configChild.notEditable
-            //   };
-            // inxeFields++;
-          configChild.notAdd = true;
-          configChild.notEditable = true;
-          if(configChild.configComponentChild){
-            if(Array.isArray(this.findInComponetnChildConstraint(configChild.configComponentChild,columns))){
-              return [configChild].concat(this.findInComponetnChildConstraint(configChild.configComponentChild,columns))
-            }
-          }else{
-            return configChild
-          }
-          // return true;
-        }
-      }
-      // if(contraintConfig){
-
-      // }
-      // let indexCont =  this.configComponent.constraint.findIndex(cons=>cons.localReference === columns[i].value);
     },
     // resetModal () {
     //   this.modalInfo.title = ''
@@ -991,22 +900,15 @@ export default {
         for (let k = 0; k < constraint.length; k++) { 
           
             if(constraint[k].service){    
-              let urlContraint = '';
-              if(constraint[k].filterService !== undefined){
-                urlContraint = this.config.urlBase+'/'+constraint[k].service+'/?'+constraint[k].filterService.localIdName+'='+this.configComponent.dataFather[constraint[k].filterService.fatherIdName];
-              }else{
-                urlContraint = this.config.urlBase+'/'+constraint[k].service
-              }
-              console.log({urlContraint});
-              
-                let resp = await this.$http.get(urlContraint).catch((error=>{
+  
+                let resp = await this.$http.get(this.config.urlBase+'/'+constraint[k].service).catch((error=>{
                         this.mensssajeModal='no se encontró el servicio\n'+this.config.urlBase+'/'+constraint[k].service+'\n'+error.response.data.error
                         this.showModalMessaje=true;
                         this.completeProcess = true;
 
                 }))
-              this.externalItems[constraint[k].label] = resp.data.rows;
-              constraint[k].resultData = JSON.parse(JSON.stringify(resp));
+                this.externalItems[constraint[k].label] = resp.data.rows;
+      
               for (let i = 0; i < this.items.length; i++) {              
                 // if(this.items[i][constraint[k].localReference]){
                     for (let j = 0; j < resp.data.rows.length; j++) {
@@ -1020,8 +922,8 @@ export default {
                 // }
             }
 
-
-          }else{         
+          }else{
+          
             if(constraint[k].data){
                   this.externalItems[constraint[k].label] = constraint[k].data;
               }else{
@@ -1150,8 +1052,7 @@ export default {
    
     },
     
-  dataSaveOnchange(item,key){//TODO:borrar el parámetro key ya no se usa
-    console.log({item});
+  dataSaveOnchange(item,key){
     // busca si el dato que llega 
     // si en los label de los constraint tiene la misma llave que llega
     // quiere decir que el dato que llegó está referenciado con otra tabla
@@ -1170,12 +1071,12 @@ export default {
     }else{
     // si  (! isConstraint.length > 0 )  quiere decir que el dato que llega hace referenia a un campo
     // que no tiene llave foranea, por lo tanto se reemplaza el valor que llega con esa misma llave 
-      this.dataUpdate[item.key]=item.value;      
+      this.dataUpdate[item.key]=value;
     }
 
   
   },
-  dataAddOnchange(item,key){//TODO:borrar el parámetro key ya no se usa
+  dataAddOnchange(item,key){
     // si el dato llega 
     // si en los label de los constraint tiene la misma llave que llega
     // quiere decir que el dato que llegó está referenciado con otra tabla
@@ -1198,16 +1099,13 @@ export default {
     }
   
   },
-  selectInputElement(key){
+  selectInputElement(type){
     
-    let type = this.fieldsJson[key].type;
     console.log({type});   
-
+   
     // let InputTextMdb = this.InputTextMdb;
     // console.log({type});
-    if(this.fieldsJson[key].configComponent){
-      return this.fieldsJson[key].configComponent.component;
-    }else
+    
     if(type === 'text'){
         return this.InputText;
     }else if(type === 'SELECT_EDITABLE'){
@@ -1284,46 +1182,32 @@ export default {
     }
   },
   //TODO: enviar unicamente las configuraciones correspondientes a cada módulo
-    configItemFormAdd(item,key){    
+      configItemFormAdd(item,key){    
         let config = {};
-        if(this.fieldsJson[key].configComponent){
-          config = this.fieldsJson[key].configComponent;
-          config.options = this.externalItems[this.fieldsJson[key].text];
-          config.constraints= this.configComponent.constraint.filter(con => con.localReference === key)[0];
 
-          config.type=this.fieldsJson[key].type;
-        }else{
         config = {
-            localReference:key,
-            label:this.fieldsJson[key].text,
-            value:this.dataAdd[key],
-            referenceId:this.dataAdd[key],
-            type:this.fieldsJson[key].type,
-            options: this.externalItems[this.fieldsJson[key].text],
-            constraints: this.configComponent.constraint.filter(con => con.localReference === key)[0]
-          }   
-        }
+          localReference:key,
+          label:this.fieldsJson[key].text,
+          value:this.dataAdd[key],
+          referenceId:this.dataAdd[key],
+          type:this.fieldsJson[key].type,
+          options: this.externalItems[this.fieldsJson[key].text],
+          constraints: this.configComponent.constraint.filter(con => con.localReference === key)[0]
+        }   
+
         return config;
       },
       configItemFormUpdate(item,key){      
         let config ={}
-        if(this.fieldsJson[key].configComponent){
-          config = this.fieldsJson[key].configComponent;
-          config.options = this.externalItems[this.fieldsJson[key].text];
-          config.constraints= this.configComponent.constraint.filter(con => con.localReference === key)[0];
-          config.value=this.dataUpdate[key];
-          config.type=this.fieldsJson[key].type;
-          config.referenceId=this.selectReferenceId(key)
-        }else{
-          config = {
-              localReference:key,
-              label:this.fieldsJson[key].text,
-              value:this.dataUpdate[key],
-              type:this.fieldsJson[key].type,
-              options: this.externalItems[this.fieldsJson[key].text],
-              referenceId:this.selectReferenceId(key),//buscar la posición de el registro y envialo
-              constraints: this.configComponent.constraint.filter(con => con.localReference === key)[0]
-          }
+
+        config = {
+            localReference:key,
+            label:this.fieldsJson[key].text,
+            value:this.dataUpdate[key],
+            type:this.fieldsJson[key].type,
+            options: this.externalItems[this.fieldsJson[key].text],
+            referenceId:this.selectReferenceId(key),//buscar la posición de el registro y envialo
+            constraints: this.configComponent.constraint.filter(con => con.localReference === key)[0]
         }
         return config;
       },
@@ -1407,7 +1291,7 @@ export default {
       datePicker,
       animate:'',//animated bounce infinite
       animateIndexAux:0,
-      countComponents:0,//TODO: esta variable ya no se está usando
+      countComponents:0,
       indexTableUbdateSelected:0,
       completeProcess:false,
       search: '',
@@ -1419,9 +1303,7 @@ export default {
         clickTimer: null,
     // <--variables de control de doble clic
     expand:false,
-    expandMoreIcon:[],
-    idPrepareDeleteItem:-2,
-    
+      expandMoreIcon:[]
     };
   },
   beforeCreate() {

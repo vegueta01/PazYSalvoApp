@@ -3,7 +3,7 @@
     <!-- :items="items"  :items="getatributeList(configComponent.options)"-->
     <v-autocomplete 
       v-model="select1"
-      :items="getatributeList(configComponent.options)"     
+      :items="getatributeList()"     
       :label="configComponent.label"
       required
       item-text="text"
@@ -49,18 +49,20 @@ export default {
           let lisOption =[];
          console.log({thisConfigComponent:this.configComponent})
         if(this.configComponent.resultData !== undefined){
-          if(this.configComponent.constraints.data){
+          if(this.configComponent.resultData){
             for (let i = 0; i < this.configComponent.resultData.data.rows.length; i++) {  
-              let option = {text: this.configComponent.resultData.data.rows[i], value: this.configComponent.resultData.data.rows[i]};
+              let option = {text: this.configComponent.resultData.data.rows[i][this.configComponent.attributeNameSelect], value: this.configComponent.resultData.data.rows[i][this.configComponent.reference]};
               lisOption.push(option)               
             }
           }else{
             for (let i = 0; i < this.configComponent.resultData.data.rows.length; i++) {
-              let option = {text: `${this.configComponent.resultData.data.rows[i][this.configComponent.constraints.attributeNameSelect]}`, value: this.configComponent.resultData.data.rows[i][this.configComponent.constraints.reference]};
+              let option = {text: `${this.configComponent.resultData.data.rows[i][this.configComponent.attributeNameSelect]}`, value: this.configComponent.resultData.data.rows[i][this.configComponent.reference]};
               lisOption.push(option)
             }
           }
           this.select1=this.configComponent.referenceId;
+          console.log({lisOption});
+          
           return lisOption;
         } 
         else if (this.configComponent.service !== undefined) {
